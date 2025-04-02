@@ -5,8 +5,8 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
     assert(width > 0, "width must be greater than 0");
     assert(width > thickness, "width must be greater than thickness");
 
-    half_thickness = (thickness * 1.2) / 2;
-    modified_width = width * 1.2;
+    half_thickness = (thickness * 1.3) / 2;
+    modified_width = width * 1.3;
     modified_height = height + 1;
     half_width = modified_width / 2;
     step = 1 / $fn;
@@ -118,7 +118,7 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
             r = calculate_r(z),
             c = PI * 2 * r,
             arc = min(180, 360 * (modified_width / c)),
-            arm_length = min(1, max(0, modified_width - c/2)) / 2,
+            arm_length = modified_width - c/2,
         )
 
         [
@@ -237,17 +237,51 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
         // this means we can't come to a shear point butting up against the top
     ];
 
-    difference() {
-        if (cutout) {
-            linear_extrude(height)
-                offset(2)
-                    translate([0, -modified_width+half_thickness])
-                        square([modified_width, modified_width]);
-        }
+    padding = 2;
 
-        translate([0, 0, -0.5])
-            polyhedron(points, faces);
+    max_r = calculate_r(1);
+    max_arm_length = (modified_width - (PI * 2 * max_r)/2)/2;
+    x = modified_width*1.5 - padding*2;
+    y = max_arm_length + max_r*2;
+
+    if (cutout) {
+        difference() {
+            translate([modified_width/2, -y/2 + half_thickness, 0])
+                linear_extrude(height, scale=[(half_thickness*4 + padding*2) / x, 1])
+                offset(padding) square([x, y], center=true);
+
+            translate([0, 0, -0.5])
+                polyhedron(points, faces);
+
+            color("green", 0.3) {
+                d=2;
+                translate([0, 0, d/2])
+                    rotate([0, 90, 0]) {
+                        linear_extrude(modified_width) {
+                            difference() {
+                                translate([d/2, 0, 0])
+                                    square([d, half_thickness*2 + d], center=true);
+                                translate([0, d/2 + half_thickness, 0])
+                                    circle(d=d);
+                                translate([0, -d/2 - half_thickness, 0])
+                                    circle(d=d);
+                            }
+                        }
+                    }
+            }
+        }
+    } else {
+        union() {
+            translate([0, 0, -0.5])
+                polyhedron(points, faces);
+
+            color("blue", 0.4)
+                translate([modified_width/2, -y/2 + half_thickness, 0])
+                linear_extrude(height, scale=[(half_thickness*4 + padding*2) / x, 1])
+                offset(padding) square([x, y], center=true);
+        }
     }
+
 }
 
 binder(25, 2, 50, cutout=true);
