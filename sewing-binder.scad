@@ -44,24 +44,42 @@ function df_arc(z, a, t) =
         original[2] + unit_normal[2] * t
     ];
 
-function f_arm(z, a) =
+function f_arm(z, start) =
     let (
         d = min(1/z^3 + half_thickness - 1, 100000000),
         c = PI * d,
-        arc = min(180, 360 * (modified_width / c)),
         r = max(thickness, d) / 2,
-        outer_r = r + half_thickness,
-        inner_r = r - half_thickness,
         arm_length = max(0, modified_width - c/2) / 2,
         tz = z * h,
     )
     [
-        half_width - r - half_thickness,
+        half_width + (start ? -1 : 1) * r,
         -(r + arm_length),
         tz
     ];
 
-function df_arm() = [];
+function df_arm_dz(z, start) =
+    let (
+    )
+    [
+        (start ? 1 : -1) * (3/(2*z^4)),
+        (3 - 3*PI/2)/(2*z^4),
+        h
+    ];
+
+function df_arm(z, start, t) =
+    let (
+        dfdz_v = df_arm_dz(z, start),
+        normal = cross(dfdz_v, [0, start ? -1 : 1, 0]),
+        len = norm(dfdz_v),
+        unit_normal = len == 0 ? [0, 0, 0] : [normal[0] / len, normal[1] / len, normal[2] / len],
+        original = f_arm(z, start),
+    )
+    [
+        original[0] + unit_normal[0] * t,
+        original[1] + unit_normal[1] * t,
+        original[2] + unit_normal[2] * t
+    ];
 
 points = [ for (z = [0:step:1]) each
     let (
@@ -78,7 +96,7 @@ points = [ for (z = [0:step:1]) each
     [
         // outer start arm
         arm_length > 0
-            ? [half_width - r - half_thickness, -(r + arm_length), tz]
+            ? df_arm(z+0.0001, true, -half_thickness)
             : df_arc(z+0.0001, -arc/2, -half_thickness),
 
         // outside of arc
@@ -86,11 +104,11 @@ points = [ for (z = [0:step:1]) each
 
         // outer end arm
         arm_length > 0
-            ? [half_width + r + half_thickness, -(r + arm_length), tz]
+            ? df_arm(z+0.0001, false, -half_thickness)
             : df_arc(z+0.0001, arc/2, -half_thickness),
         // inner end arm
         arm_length > 0
-            ? [half_width + r - half_thickness, -(r + arm_length), tz]
+            ? df_arm(z+0.0001, false, half_thickness)
             : df_arc(z+0.0001, arc/2, half_thickness),
 
         // inside of arc
@@ -98,7 +116,7 @@ points = [ for (z = [0:step:1]) each
 
         // inner start arm
         arm_length > 0
-            ? [half_width - r + half_thickness, -(r + arm_length), tz]
+            ? df_arm(z+0.0001, true, half_thickness)
             : df_arc(z+0.0001, -arc/2, half_thickness),
     ]
 ];
