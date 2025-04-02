@@ -255,19 +255,32 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
 
             color("green", 0.3) {
                 d=2;
+
                 translate([0, 0, d/2])
-                    rotate([0, 90, 0]) {
-                        linear_extrude(modified_width) {
-                            difference() {
-                                translate([d/2, 0, 0])
-                                    square([d, half_thickness*2 + d], center=true);
+                difference() {
+                    translate([-d/2, -(d/2+half_thickness), -d])
+                        cube([modified_width+d, d+half_thickness*2, d]);
+
+                    translate([-d, 0, 0])
+                        rotate([0, 90, 0]) {
+                            linear_extrude(modified_width+2*d) {
                                 translate([0, d/2 + half_thickness, 0])
                                     circle(d=d);
                                 translate([0, -d/2 - half_thickness, 0])
                                     circle(d=d);
                             }
                         }
-                    }
+
+                    translate([0, half_thickness+d, 0])
+                        rotate([90, 90, 0]) {
+                            linear_extrude(half_thickness*2 + 2*d) {
+                                translate([0, -d/2])
+                                    circle(d=d);
+                                translate([0, modified_width + d/2])
+                                    circle(d=d);
+                            }
+                        }
+                }
             }
         }
     } else {
@@ -279,9 +292,39 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
                 translate([modified_width/2, -y/2 + half_thickness, 0])
                 linear_extrude(height, scale=[(half_thickness*4 + padding*2) / x, 1])
                 offset(padding) square([x, y], center=true);
+
+            color("green", 0.3) {
+                d=2;
+
+                translate([0, 0, d/2])
+                difference() {
+                    translate([-d/2, -(d/2+half_thickness), -d])
+                        cube([modified_width+d, d+half_thickness*2, d]);
+
+                    translate([-d, 0, 0])
+                        rotate([0, 90, 0]) {
+                            linear_extrude(modified_width+2*d) {
+                                translate([0, d/2 + half_thickness, 0])
+                                    circle(d=d);
+                                translate([0, -d/2 - half_thickness, 0])
+                                    circle(d=d);
+                            }
+                        }
+
+                    translate([0, half_thickness+d, 0])
+                        rotate([90, 90, 0]) {
+                            linear_extrude(half_thickness*2 + 2*d) {
+                                translate([0, -d/2])
+                                    circle(d=d);
+                                translate([0, modified_width + d/2])
+                                    circle(d=d);
+                            }
+                        }
+                }
+            }
         }
     }
 
 }
 
-binder(25, 2, 50, cutout=false);
+binder(25, 2, 50, cutout=true);
