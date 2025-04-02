@@ -6,30 +6,62 @@ half_thickness = thickness / 2;
 modified_width = 25 + 4;
 half_width = modified_width / 2;
 h = 50;
-step = 1 / 20;
+step = 1 / 10;
 
-// Function to calculate normal vector between three points
-function calculate_normal(p1, p2, p3) =
-    let(
-        v1 = p2 - p1,
-        v2 = p3 - p1,
-        normal = cross(v1, v2)
-    )
-    normalize(normal);
-
-function f(z, a) =
-    let(
+function f_arc(z, a) =
+    let (
         d = min(1/z^3 + half_thickness - 1, 100000000),
-        c = PI * d,
-        arc = min(180, 360 * (modified_width / c)),
         r = max(thickness, d) / 2,
-        arm_length = max(0, modified_width - c/2) / 2
     )
     [
         r * sin(a) + half_width, // x
         r * cos(a) - r, // y
         z * h
     ];
+
+function df_arc_da(z, a) =
+    let (
+        d = min(1/z^3 + half_thickness - 1, 100000000),
+        r = max(thickness, d) / 2,
+    )
+    [r * cos(a), -r * sin(a), 0];
+
+function df_arc_dz(z, a) =
+    [sin(a) * (-3/(2*z^4)), (-3/(2*z^4)) * (cos(a) - 1), h];
+
+function df_arc(z, a, t) =
+    let (
+        dfda_v = df_arc_da(z, a),
+        dfdz_v = df_arc_dz(z, a),
+        normal = cross(dfda_v, dfdz_v),
+        len = norm(normal),
+        unit_normal = len == 0 ? [0, 0, 0] : [normal[0] / len, normal[1] / len, normal[2] / len],
+        original = f_arc(z, a),
+    )
+    [
+        original[0] + unit_normal[0] * t,
+        original[1] + unit_normal[1] * t,
+        original[2] + unit_normal[2] * t
+    ];
+
+function f_arm(z, a) =
+    let (
+        d = min(1/z^3 + half_thickness - 1, 100000000),
+        c = PI * d,
+        arc = min(180, 360 * (modified_width / c)),
+        r = max(thickness, d) / 2,
+        outer_r = r + half_thickness,
+        inner_r = r - half_thickness,
+        arm_length = max(0, modified_width - c/2) / 2,
+        tz = z * h,
+    )
+    [
+        half_width - r - half_thickness,
+        -(r + arm_length),
+        tz
+    ];
+
+function df_arm() = [];
 
 points = [ for (z = [0:step:1]) each
     let (
@@ -47,51 +79,27 @@ points = [ for (z = [0:step:1]) each
         // outer start arm
         arm_length > 0
             ? [half_width - r - half_thickness, -(r + arm_length), tz]
-            : [
-                outer_r * sin(-arc/2) + half_width, // x
-                outer_r * cos(-arc/2) - r, // y
-                tz
-            ],
+            : df_arc(z+0.0001, -arc/2, -half_thickness),
 
         // outside of arc
-        for (a = [-arc/2:arc/$fn:arc/2]) [
-            outer_r * sin(a) + half_width, // x
-            outer_r * cos(a) - r, // y
-            tz
-        ],
+        for (a = [-arc/2:arc/$fn:arc/2]) df_arc(z+0.0001, a, -half_thickness),
 
         // outer end arm
         arm_length > 0
             ? [half_width + r + half_thickness, -(r + arm_length), tz]
-            : [
-                outer_r * sin(arc/2) + half_width, // x
-                outer_r * cos(arc/2) - r, // y
-                tz
-            ],
+            : df_arc(z+0.0001, arc/2, -half_thickness),
         // inner end arm
         arm_length > 0
             ? [half_width + r - half_thickness, -(r + arm_length), tz]
-            : [
-                inner_r * sin(arc/2) + half_width, // x
-                inner_r * cos(arc/2) - r, // y
-                tz
-            ],
+            : df_arc(z+0.0001, arc/2, half_thickness),
 
         // inside of arc
-        for (a = [arc/2:-arc/$fn:-arc/2]) [
-            inner_r * sin(a) + half_width, // x
-            inner_r * cos(a) - r, // y
-            tz
-        ],
+        for (a = [arc/2:-arc/$fn:-arc/2]) df_arc(z+0.0001, a, half_thickness),
 
         // inner start arm
         arm_length > 0
             ? [half_width - r + half_thickness, -(r + arm_length), tz]
-            : [
-                inner_r * sin(-arc/2) + half_width, // x
-                inner_r * cos(-arc/2) - r, // y
-                tz
-            ],
+            : df_arc(z+0.0001, -arc/2, half_thickness),
     ]
 ];
 
