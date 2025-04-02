@@ -159,7 +159,7 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
             x,
         ],
 
-        for (z = [0:len(points)/points_per_layer - 2]) each
+        for (z = [0:len(points)/points_per_layer - 3]) each
             [
                 for (x = [0:points_per_layer-2]) [
                     z * points_per_layer + x,
@@ -175,20 +175,66 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
                 ],
             ],
 
+        // for the last segment of the shape, we close the surface on the bottom
+        // to avoid sharing the vertex with the cap, which causes the surface to
+        // become open
+
         // flat cap over arms
         [
             len(points) - points_per_layer,
             len(points) - points_per_layer + 1,
-            len(points) - points_per_layer + (points_per_layer/2-2),
-            len(points) - points_per_layer + (points_per_layer/2-2) + 1,
+            len(points) - (points_per_layer/2) - 2,
+            len(points) - (points_per_layer/2) - 1,
         ],
-
         // flat cap over arc
         for (x = [1:points_per_layer/2-3]) [
             len(points) - points_per_layer + x,
             len(points) - points_per_layer + x + 1,
             len(points) - points_per_layer + (points_per_layer/2-2),
         ],
+
+        // undercap arc
+        [
+            len(points) - points_per_layer - points_per_layer/2,
+            len(points) - points_per_layer - points_per_layer/2 + 1,
+            len(points) - points_per_layer - 1,
+        ],
+        for (x = [2:points_per_layer/2-2])
+            let (
+                start = len(points) - points_per_layer - points_per_layer/2
+            )
+            [
+                start + x,
+                start + x + 1,
+                start + 1
+            ],
+
+        // outside of last segment
+        for (x = [0:points_per_layer/2-2])
+            let (
+                z = len(points)/points_per_layer - 2
+            )
+            [
+                z * points_per_layer + x,
+                z * points_per_layer + x + 1,
+                (z + 1) * points_per_layer + x + 1,
+                (z + 1) * points_per_layer + x
+            ],
+        [
+            (len(points)/points_per_layer - 2) * points_per_layer,
+            (len(points)/points_per_layer - 1) * points_per_layer,
+            (len(points)/points_per_layer - 1) * points_per_layer + points_per_layer/2-1,
+            (len(points)/points_per_layer - 2) * points_per_layer + points_per_layer-1,
+        ],
+        [
+            (len(points)/points_per_layer - 2) * points_per_layer + points_per_layer/2,
+            (len(points)/points_per_layer - 2) * points_per_layer + points_per_layer-1,
+            (len(points)/points_per_layer - 1) * points_per_layer + points_per_layer/2-1,
+            (len(points)/points_per_layer - 2) * points_per_layer + points_per_layer/2-1,
+        ],
+
+        // the surface won't be closed if we have more than two faces share a vertex
+        // this means we can't come to a shear point butting up against the top
     ];
 
     difference() {
@@ -204,4 +250,4 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
     }
 }
 
-binder(25, 2, 50, cutout=false);
+binder(25, 2, 50, cutout=true);
