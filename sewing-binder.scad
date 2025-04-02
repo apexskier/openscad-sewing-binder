@@ -8,10 +8,12 @@ half_width = modified_width / 2;
 h = 50;
 step = 1 / 10;
 
+function calculate_r(z) =
+    max(thickness, min(1/z^3 + half_thickness - 1, 100000000)) / 2;
+
 function f_arc(z, a) =
     let (
-        d = min(1/z^3 + half_thickness - 1, 100000000),
-        r = max(thickness, d) / 2,
+        r = calculate_r(z)
     )
     [
         r * sin(a) + half_width, // x
@@ -21,13 +23,22 @@ function f_arc(z, a) =
 
 function df_arc_da(z, a) =
     let (
-        d = min(1/z^3 + half_thickness - 1, 100000000),
-        r = max(thickness, d) / 2,
+        r = calculate_r(z)
     )
-    [r * cos(a), -r * sin(a), 0];
+    [
+        r * cos(a),
+        -r * sin(a),
+        0
+    ];
 
 function df_arc_dz(z, a) =
-    [sin(a) * (-3/(2*z^4)), (-3/(2*z^4)) * (cos(a) - 1), h];
+    z == 0
+        ? [sin(a), (cos(a) - 1), h]
+        : [
+            sin(a) * (-3/(2*z^4)),
+            (-3/(2*z^4)) * (cos(a) - 1),
+            h
+        ];
 
 function df_arc(z, a, t) =
     let (
@@ -46,21 +57,17 @@ function df_arc(z, a, t) =
 
 function f_arm(z, start) =
     let (
-        d = min(1/z^3 + half_thickness - 1, 100000000),
-        c = PI * d,
-        r = max(thickness, d) / 2,
+        r = calculate_r(z),
+        c = PI * 2 * r,
         arm_length = max(0, modified_width - c/2) / 2,
-        tz = z * h,
     )
     [
         half_width + (start ? -1 : 1) * r,
         -(r + arm_length),
-        tz
+        z * h
     ];
 
 function df_arm_dz(z, start) =
-    let (
-    )
     [
         (start ? 1 : -1) * (3/(2*z^4)),
         (3 - 3*PI/2)/(2*z^4),
@@ -83,41 +90,37 @@ function df_arm(z, start, t) =
 
 points = [ for (z = [0:step:1]) each
     let (
-        d = min(1/z^3 + half_thickness - 1, 100000000),
-        c = PI * d,
+        r = calculate_r(z),
+        c = PI * 2 * r,
         arc = min(180, 360 * (modified_width / c)),
-        r = max(thickness, d) / 2,
-        outer_r = r + half_thickness,
-        inner_r = r - half_thickness,
         arm_length = max(0, modified_width - c/2) / 2,
-        tz = z * h,
     )
 
     [
         // outer start arm
         arm_length > 0
-            ? df_arm(z+0.0001, true, -half_thickness)
-            : df_arc(z+0.0001, -arc/2, -half_thickness),
+            ? df_arm(z, true, -half_thickness)
+            : df_arc(z, -arc/2, -half_thickness),
 
         // outside of arc
-        for (a = [-arc/2:arc/$fn:arc/2]) df_arc(z+0.0001, a, -half_thickness),
+        for (a = [-arc/2:arc/$fn:arc/2]) df_arc(z, a, -half_thickness),
 
         // outer end arm
         arm_length > 0
-            ? df_arm(z+0.0001, false, -half_thickness)
-            : df_arc(z+0.0001, arc/2, -half_thickness),
+            ? df_arm(z, false, -half_thickness)
+            : df_arc(z, arc/2, -half_thickness),
         // inner end arm
         arm_length > 0
-            ? df_arm(z+0.0001, false, half_thickness)
-            : df_arc(z+0.0001, arc/2, half_thickness),
+            ? df_arm(z, false, half_thickness)
+            : df_arc(z, arc/2, half_thickness),
 
         // inside of arc
-        for (a = [arc/2:-arc/$fn:-arc/2]) df_arc(z+0.0001, a, half_thickness),
+        for (a = [arc/2:-arc/$fn:-arc/2]) df_arc(z, a, half_thickness),
 
         // inner start arm
         arm_length > 0
-            ? df_arm(z+0.0001, true, half_thickness)
-            : df_arc(z+0.0001, -arc/2, half_thickness),
+            ? df_arm(z, true, half_thickness)
+            : df_arc(z, -arc/2, half_thickness),
     ]
 ];
 
