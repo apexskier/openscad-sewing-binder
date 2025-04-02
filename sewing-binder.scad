@@ -5,8 +5,8 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
     assert(width > 0, "width must be greater than 0");
     assert(width > thickness, "width must be greater than thickness");
 
-    half_thickness = (thickness * 1.3) / 2;
-    modified_width = width * 1.3;
+    half_thickness = (thickness + 2) / 2;
+    modified_width = width + 2;
     modified_height = height + 1;
     half_width = modified_width / 2;
     step = 1 / $fn;
