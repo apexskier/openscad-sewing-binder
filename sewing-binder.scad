@@ -275,7 +275,7 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
             translate([0, 0, -0.5])
                 polyhedron(points, faces);
 
-            color("blue", 0.4)
+            color("blue", 0.2)
                 translate([modified_width/2, -y/2 + half_thickness, 0])
                 linear_extrude(height, scale=[(half_thickness*4 + padding*2) / x, 1])
                 offset(padding) square([x, y], center=true);
@@ -284,4 +284,4 @@ module binder(width, thickness, height, cutout=true, $fn=$fn) {
 
 }
 
-binder(25, 2, 50, cutout=true);
+binder(25, 2, 50, cutout=false);
