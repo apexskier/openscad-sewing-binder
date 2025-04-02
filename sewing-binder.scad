@@ -1,4 +1,4 @@
-$fn=10;
+$fn=20;
 
 thickness = 2;
 half_thickness = thickness / 2;
@@ -6,7 +6,7 @@ half_thickness = thickness / 2;
 modified_width = 25 + 4;
 half_width = modified_width / 2;
 h = 50;
-step = 1 / 10;
+step = 1 / 20;
 
 function calculate_r(z) =
     max(thickness, min(1/z^3 + half_thickness - 1, 100000000)) / 2;
@@ -93,7 +93,7 @@ points = [ for (z = [0:step:1]) each
         r = calculate_r(z),
         c = PI * 2 * r,
         arc = min(180, 360 * (modified_width / c)),
-        arm_length = max(0, modified_width - c/2) / 2,
+        arm_length = min(1, max(0, modified_width - c/2)) / 2,
     )
 
     [
@@ -134,36 +134,49 @@ faces = [
         x,
     ],
 
-    for (z = [0:step:1-step]) let (
-        mz = z/step
-    ) each [
-        for (x = [0:points_per_layer-2]) [
-            mz*points_per_layer + x,
-            mz*points_per_layer + x + 1,
-            (mz+1)*points_per_layer + x + 1,
-            (mz+1)*points_per_layer + x
-        ],
+    for (mz = [0:len(points)/points_per_layer - 2]) each
         [
-            mz*points_per_layer + points_per_layer-1,
-            mz*points_per_layer,
-            mz*points_per_layer + points_per_layer-1 + 1,
-            (mz+1)*points_per_layer + points_per_layer-1,
-        ]
+            for (x = [0:points_per_layer-2]) [
+                mz * points_per_layer + x,
+                mz * points_per_layer + x + 1,
+                (mz + 1) * points_per_layer + x + 1,
+                (mz + 1) * points_per_layer + x
+            ],
+            [
+                (mz + 1) * points_per_layer - 1,
+                mz * points_per_layer,
+                (mz + 1) * points_per_layer,
+                (mz + 2) * points_per_layer - 1,
+            ]
+        ],
+
+    [
+        len(points) - points_per_layer,
+        len(points) - points_per_layer + 1,
+        len(points) - 1 - 1,
+        len(points) - 1,
     ],
 
-    for (x = [0:points_per_layer/2-2]) [
+    [
+        len(points) - points_per_layer + (points_per_layer/2-2),
+        len(points) - points_per_layer + (points_per_layer/2-2) + 1,
+        len(points) - (points_per_layer/2-2) - 1 - 1,
+        len(points) - (points_per_layer/2-2) - 1,
+    ],
+
+    for (x = [1:points_per_layer/2-3]) [
         len(points) - points_per_layer + x,
         len(points) - points_per_layer + x + 1,
-        len(points) - x - 1 - 1,
         len(points) - x - 1,
     ],
 ];
 
 difference() {
-    // linear_extrude(h)
-    //     offset(2)
-    //     translate([0, -modified_width+half_thickness, 0])
-    //         square([modified_width, modified_width]);
+    // translate([0, 0, 0.1])
+    //     linear_extrude(h-0.2)
+    //         offset(2)
+    //             translate([0, -modified_width+half_thickness])
+    //                 square([modified_width, modified_width]);
 
     polyhedron(points, faces);
 }
